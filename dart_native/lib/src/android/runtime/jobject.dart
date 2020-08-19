@@ -9,14 +9,29 @@ import 'class.dart';
 class JObject extends Class{
   Pointer _ptr;
 
-  //init target class
-  JObject(String className, Pointer ptr) : super(className) {
-    _ptr = ptr == null ? nativeCreateClass(super.classUtf8()) : ptr;
-    JObjectPool.sInstance.retain(this);
-  }
-
   Pointer get pointer{
     return _ptr;
+  }
+
+  //init target class
+  JObject(String className, Pointer ptr, List args) : super(className) {
+    Pointer<Pointer<Void>> pointers;
+    Pointer<Pointer<Utf8>> typePointers;
+    pointers = allocate<Pointer<Void>>(count: args.length + 1);
+    typePointers = allocate<Pointer<Utf8>>(count: args.length + 1);
+    for (var i = 0; i < args.length; i++) {
+      var arg = args[i];
+      if (arg == null) {
+        throw 'One of args list is null';
+      }
+      storeValueToPointer(arg, pointers.elementAt(i), typePointers.elementAt(i));
+    }
+    pointers.elementAt(args.length).value = nullptr;
+    typePointers.elementAt(args.length).value = nullptr;
+
+    _ptr = ptr == null ? nativeCreateClass(super.classUtf8(), pointers, typePointers ) : ptr;
+    JObjectPool.sInstance.retain(this);
+
   }
 
   dynamic invoke(String methodName, List args, [String returnType]) {

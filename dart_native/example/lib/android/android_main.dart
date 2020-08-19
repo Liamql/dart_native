@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
-
+import 'package:dart_native_example/android/runtimestub.dart';
 import 'dart:ffi' as ffi;
 
 import 'package:dart_native/src/android/dart_java.dart';
+import 'constructorTest.dart';
 
 class AndroidApp extends StatefulWidget {
   @override
@@ -10,6 +11,9 @@ class AndroidApp extends StatefulWidget {
 }
 
 class _AndroidAppState extends State<AndroidApp> {
+
+  RuntimeStub stub = RuntimeStub();
+
   static final int _TEST_COUNT = 10000;
 
   int _ffiInt = 0;
@@ -24,6 +28,8 @@ class _AndroidAppState extends State<AndroidApp> {
 
   int _ffiByte = 0;
 
+  int _ffiString = 0;
+
   int _ffiShort = 0;
 
   int _ffiLong = 0;
@@ -31,6 +37,8 @@ class _AndroidAppState extends State<AndroidApp> {
   int _ffiFloat = 0;
 
   int _ffiChar = 0;
+
+  String _str = "null";
 
   @override
   void initState() {
@@ -84,7 +92,7 @@ class _AndroidAppState extends State<AndroidApp> {
             width: 800, // specific value
             child: new FlatButton(
                 onPressed: () {
-                  testIntFFI();
+                  testIntFFIso();
                 },
                 child: Text('FFI int : $_ffiInt\n')),
           ),
@@ -94,7 +102,7 @@ class _AndroidAppState extends State<AndroidApp> {
             width: 800, // specific value
             child: new FlatButton(
                 onPressed: () {
-                  testDoubleFFI();
+                  testDoubleFFIso();
                 },
                 child: Text('FFI double : $_ffiDouble\n')),
           ),
@@ -104,9 +112,9 @@ class _AndroidAppState extends State<AndroidApp> {
             width: 800, // specific value
             child: new FlatButton(
                 onPressed: () {
-                  testByteFFI();
+                  testStringFFIso();
                 },
-                child: Text('FFI byte : $_ffiByte\n')),
+                child: Text('FFI String : $_ffiString\n')),
           ),
         ),
         Expanded(
@@ -114,43 +122,21 @@ class _AndroidAppState extends State<AndroidApp> {
             width: 800, // specific value
             child: new FlatButton(
                 onPressed: () {
-                  testShortFFI();
+                  testConstructor();
                 },
-                child: Text('FFI short : $_ffiShort\n')),
-          ),
-        ),
-        Expanded(
-          child: new SizedBox(
-            width: 800, // specific value
-            child: new FlatButton(
-                onPressed: () {
-                  testLongFFI();
-                },
-                child: Text('FFI long : $_ffiLong\n')),
-          ),
-        ),
-        Expanded(
-          child: new SizedBox(
-            width: 800, // specific value
-            child: new FlatButton(
-                onPressed: () {
-                  testFloatFFI();
-                },
-                child: Text('FFI float : $_ffiFloat\n')),
-          ),
-        ),
-        Expanded(
-          child: new SizedBox(
-            width: 800, // specific value
-            child: new FlatButton(
-                onPressed: () {
-                  testCharFFI();
-                },
-                child: Text('FFI char : $_ffiChar\n')),
+                child: Text('testConstructor : $_str\n')),
           ),
         ),
       ]),
     ));
+  }
+
+  void testConstructor() async {
+    print("testConstructor");
+    String res = constructorTest("changeName!").getString();
+    setState(() {
+      _str = res;
+    });
   }
 
   void testIntMethodChannel() async {
@@ -167,18 +153,14 @@ class _AndroidAppState extends State<AndroidApp> {
     });
   }
 
-  void testIntFFI() async {
+  void testIntFFIso() async {
     print("testIntFFI");
     var startMs = currentTimeMillis();
-    final ffi.DynamicLibrary nativePlatformLib =
-        ffi.DynamicLibrary.open("libtest_lib.so");
-
+    int resultInt;
     for (int i = 0; i < _TEST_COUNT; i++) {
-      final IntPlatformFunction nativePlatform = nativePlatformLib
-          .lookup<ffi.NativeFunction<NativeIntFunction>>("getPlatformInt")
-          .asFunction();
-      nativePlatform();
+      resultInt = stub.getInt(10);
     }
+//    print('getInt result:$resultInt');
     var endMs = currentTimeMillis();
     var useMs = endMs - startMs;
     print("testIntFFI ,cost ms :" + useMs.toString());
@@ -186,6 +168,7 @@ class _AndroidAppState extends State<AndroidApp> {
       _ffiInt = useMs;
     });
   }
+
 
   void testDoubleMethodChannel() async {
     print("testDoubleMethodChannel");
@@ -215,6 +198,24 @@ class _AndroidAppState extends State<AndroidApp> {
     });
   }
 
+  void testStringFFIso() async {
+    print("testStringFFI");
+    var startMs = currentTimeMillis();
+    String res;
+    for (int i = 0; i < _TEST_COUNT; i++) {
+      res = stub.getString("test is success?");
+    }
+//    print('getString result:$res');
+    var endMs = currentTimeMillis();
+    var useMs = endMs - startMs;
+    print("testStringFFI ,cost ms :" + useMs.toString());
+    setState(() {
+      _ffiString = useMs;
+    });
+  }
+
+
+
   void testDoubleFFI() async {
     print("testDoubleFFI");
     var startMs = currentTimeMillis();
@@ -227,6 +228,23 @@ class _AndroidAppState extends State<AndroidApp> {
           .asFunction();
       nativePlatform();
     }
+    var endMs = currentTimeMillis();
+    var useMs = endMs - startMs;
+    print("testDoubleFFI ,cost ms :" + useMs.toString());
+    setState(() {
+      _ffiDouble = useMs;
+    });
+  }
+
+
+  void testDoubleFFIso() async {
+    print("testDoubleFFI");
+    var startMs = currentTimeMillis();
+    double resultDouble;
+    for (int i = 0; i < _TEST_COUNT; i++) {
+      resultDouble = stub.getDouble(10.0);
+    }
+//    print('getDouble result:$resultDouble');
     var endMs = currentTimeMillis();
     var useMs = endMs - startMs;
     print("testDoubleFFI ,cost ms :" + useMs.toString());

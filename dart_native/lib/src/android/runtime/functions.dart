@@ -7,9 +7,16 @@ import 'package:ffi/ffi.dart';
 /// 创建native class
 /// input : className
 /// return : classObject
-final Pointer<Void> Function(Pointer<Utf8>) nativeCreateClass = nativeDylib
-    .lookup<NativeFunction<Pointer<Void> Function(Pointer<Utf8>)>>(
-        "createTargetClass")
+final Pointer<Void> Function(Pointer<Utf8>, Pointer<Pointer<Void>> argsPtrs,
+    Pointer<Pointer<Utf8>> typePtrs,) nativeCreateClass = nativeDylib
+    .lookup<
+    NativeFunction<
+      Pointer<Void> Function(
+      Pointer<Utf8>,
+      Pointer<Pointer<Void>> argsPtrs,
+      Pointer<Pointer<Utf8>> typePtrs
+    )>>(
+    "createTargetClass")
     .asFunction();
 
 /// release class

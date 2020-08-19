@@ -7,7 +7,7 @@ public class RuntimeStub {
 
   public int getInt(int i){
     Log.d(TAG, "getInt : " + i);
-    return 100;
+    return 666;
   }
 
   public double getDouble(double b) {

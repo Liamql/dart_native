@@ -27,6 +27,7 @@ JNIEnv *getEnv() {
     return env;
 }
 
+
 JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *pjvm, void *reserved) {
     NSLog("JNI_OnLoad");
     gJvm = pjvm;  // cache the JavaVM pointer
@@ -51,64 +52,6 @@ jclass findClass(JNIEnv *env, const char *name) {
     }
     return static_cast<jclass>(env->CallObjectMethod(gClassLoader, gFindClassMethod,
                                                      env->NewStringUTF(name)));
-}
-
-// todo 泄漏
-static std::map<jobject, jclass> cache;
-
-void *createTargetClass(char *targetClassName) {
-    JNIEnv *curEnv;
-    bool bShouldDetach = false;
-
-    auto error = gJvm->GetEnv((void **) &curEnv, JNI_VERSION_1_6);
-    if (error < 0) {
-        error = gJvm->AttachCurrentThread(&curEnv, nullptr);
-        bShouldDetach = true;
-        NSLog("AttachCurrentThread : %d", error);
-    }
-
-    jclass cls = findClass(curEnv, targetClassName);
-    jmethodID constructor = curEnv->GetMethodID(cls, "<init>", "()V");
-    jobject newObject = curEnv->NewGlobalRef(curEnv->NewObject(cls, constructor));
-    cache[newObject] = static_cast<jclass>(curEnv->NewGlobalRef(cls));
-
-
-    if (bShouldDetach) {
-        gJvm->DetachCurrentThread();
-    }
-
-    return newObject;
-}
-
-
-void releaseTargetClass(void *classPtr) {
-    JNIEnv *curEnv;
-    bool bShouldDetach = false;
-
-    auto error = gJvm->GetEnv((void **) &curEnv, JNI_VERSION_1_6);
-    if (error < 0) {
-        error = gJvm->AttachCurrentThread(&curEnv, nullptr);
-        bShouldDetach = true;
-        NSLog("AttachCurrentThread : %d", error);
-    }
-
-    jobject object = static_cast<jobject>(classPtr);
-    curEnv->DeleteGlobalRef(object);
-    cache[object] = NULL;
-
-    if (bShouldDetach) {
-        gJvm->DetachCurrentThread();
-    }
-}
-
-char *findReturnType(JNIEnv *curEnv, jclass cls, jobject object, char* methondName, char **argType) {
-    jclass nativeClass = curEnv->FindClass("com/dartnative/dart_native/DartNative");
-    jmethodID nativeMethodID = curEnv->GetStaticMethodID(nativeClass,
-            "getMethodReturnType", "(Ljava/lang/Class;Ljava/lang/String;[Ljava/lang/String;)Ljava/lang/String;");
-
-//    jobjectArray stringArray = new jobjectArray()
-
-//    curEnv->CallStaticObjectMethodA(nativeClass, nativeMethodID, argType);
 }
 
 char *spliceChar(char *dest, char *src) {
@@ -166,6 +109,75 @@ void fillArgs(void **args, char **argTypes, jvalue *argValues, JNIEnv *curEnv) {
         else if(strcmp(argType, "V") == 0) {}
     }
 }
+
+// todo 泄漏
+static std::map<jobject, jclass> cache;
+
+void *createTargetClass(char *targetClassName, void **args, char **argTypes ) {
+    JNIEnv *curEnv;
+    bool bShouldDetach = false;
+
+    auto error = gJvm->GetEnv((void **) &curEnv, JNI_VERSION_1_6);
+    if (error < 0) {
+        error = gJvm->AttachCurrentThread(&curEnv, nullptr);
+        bShouldDetach = true;
+        NSLog("AttachCurrentThread : %d", error);
+    }
+
+    jclass cls = findClass(curEnv, targetClassName);
+    char *signature = generateSignature(argTypes);
+    jvalue *argValues = new jvalue[strlen(signature) - 2];
+    jobject newObject;
+    if( strlen(signature) - 2 == 0){
+        jmethodID constructor = curEnv->GetMethodID(cls, "<init>", "()V");
+        newObject = curEnv->NewGlobalRef(curEnv->NewObject(cls, constructor));
+    }
+    else{
+        fillArgs(args, argTypes, argValues, curEnv);
+        jmethodID constructor = curEnv->GetMethodID(cls, "<init>", spliceChar(signature, const_cast<char *>("V")));
+        newObject = curEnv->NewGlobalRef(curEnv->NewObjectA(cls, constructor, argValues));
+
+    }
+    cache[newObject] = static_cast<jclass>(curEnv->NewGlobalRef(cls));
+
+    if (bShouldDetach) {
+        gJvm->DetachCurrentThread();
+    }
+
+    return newObject;
+}
+
+
+void releaseTargetClass(void *classPtr) {
+    JNIEnv *curEnv;
+    bool bShouldDetach = false;
+
+    auto error = gJvm->GetEnv((void **) &curEnv, JNI_VERSION_1_6);
+    if (error < 0) {
+        error = gJvm->AttachCurrentThread(&curEnv, nullptr);
+        bShouldDetach = true;
+        NSLog("AttachCurrentThread : %d", error);
+    }
+
+    jobject object = static_cast<jobject>(classPtr);
+    curEnv->DeleteGlobalRef(object);
+    cache[object] = NULL;
+
+    if (bShouldDetach) {
+        gJvm->DetachCurrentThread();
+    }
+}
+
+char *findReturnType(JNIEnv *curEnv, jclass cls, jobject object, char* methondName, char **argType) {
+    jclass nativeClass = curEnv->FindClass("com/dartnative/dart_native/DartNative");
+    jmethodID nativeMethodID = curEnv->GetStaticMethodID(nativeClass,
+            "getMethodReturnType", "(Ljava/lang/Class;Ljava/lang/String;[Ljava/lang/String;)Ljava/lang/String;");
+
+//    jobjectArray stringArray = new jobjectArray()
+
+//    curEnv->CallStaticObjectMethodA(nativeClass, nativeMethodID, argType);
+}
+
 
 
 void *invokeNativeMethodNeo(void *classPtr, char *methodName, void **args, char **argTypes, char *returnType) {
