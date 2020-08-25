@@ -34,9 +34,10 @@ class JObject extends Class{
 
   }
 
-  dynamic invoke(String methodName, List args, [String returnType]) {
+  dynamic invoke(String methodName, List args, [String returnType, String isStatic]) {
     Pointer<Utf8> methodNamePtr = Utf8.toUtf8(methodName);
     Pointer<Utf8> returnTypePtr = Utf8.toUtf8(returnType);
+    Pointer<Utf8> isStaticPtr = Utf8.toUtf8(isStatic);
 
     Pointer<Pointer<Void>> pointers;
     Pointer<Pointer<Utf8>> typePointers;
@@ -54,7 +55,8 @@ class JObject extends Class{
       typePointers.elementAt(args.length).value = nullptr;
     }
     Pointer<Void> invokeMethodRet =
-        nativeInvokeNeo(_ptr, methodNamePtr, pointers, typePointers, returnTypePtr);
+        nativeInvokeNeo(_ptr, methodNamePtr, pointers, typePointers
+            , returnTypePtr, isStaticPtr);
     dynamic result = loadValueFromPointer(invokeMethodRet, returnType);
     if (pointers != null) {
       free(pointers);

@@ -180,10 +180,13 @@ char *findReturnType(JNIEnv *curEnv, jclass cls, jobject object, char* methondNa
 
 
 
-void *invokeNativeMethodNeo(void *classPtr, char *methodName, void **args, char **argTypes, char *returnType) {
+void *invokeNativeMethodNeo(void *classPtr, char *methodName, void **args, char **argTypes,
+            char *returnType, char* isStaticPtr) {
     JNIEnv *curEnv;
     bool bShouldDetach = false;
     void *nativeInvokeResult = nullptr;
+    int isStatic = strcmp(isStaticPtr, "static");
+    // NSLog("is static: %s, %d" ,isStaticPtr, isStatic);
 
     auto error = gJvm->GetEnv((void **) &curEnv, JNI_VERSION_1_6);
     if (error < 0) {
@@ -196,16 +199,48 @@ void *invokeNativeMethodNeo(void *classPtr, char *methodName, void **args, char 
     char *signature = generateSignature(argTypes);
     jvalue *argValues = new jvalue[strlen(signature) - 2];
     fillArgs(args, argTypes, argValues, curEnv);
-    jmethodID method = curEnv->GetMethodID(cls, methodName, spliceChar(signature, returnType));
+    jmethodID method;
+
+    if(isStatic>=0){
+        method = curEnv->GetStaticMethodID(cls, methodName, spliceChar(signature, returnType));
+    }
+    else{
+        method = curEnv->GetMethodID(cls, methodName, spliceChar(signature, returnType));
+    }
+    NSLog("AttachCurrentThread : %d", error);
 
     if (strlen(returnType) > 1) {
         if (strcmp(returnType, "Ljava/lang/String;") == 0) {
-            jstring javaString = (jstring)curEnv->CallObjectMethodA(object, method, argValues);
+            jstring javaString;
+            if(isStatic>=0){
+                javaString = (jstring)curEnv->CallStaticObjectMethodA(cls, method, argValues);
+            }
+            else{
+                javaString = (jstring)curEnv->CallObjectMethodA(object, method, argValues);
+            }
             nativeInvokeResult = (char *) curEnv->GetStringUTFChars(javaString, 0);
             curEnv->DeleteLocalRef(javaString);
         }
+        else if(strcmp(returnType, "[I") == 0){
+        //TODO
+            jobject arrObj = curEnv->NewGlobalRef(curEnv->CallObjectMethodA(object, method, argValues));
+            jintArray intArr = (jintArray)arrObj;
+            jsize arrN = curEnv->GetArrayLength(intArr);
+            jint *body = curEnv->GetIntArrayElements(intArr, 0);
+            NSLog("arr size:  %d", arrN);
+            for(int i =0;i<arrN;i++){
+                NSLog(" %d", body[i]);
+            }
+            nativeInvokeResult = arrObj;
+        }
         else {
-            jobject obj = curEnv->NewGlobalRef(curEnv->CallObjectMethodA(object, method, argValues));
+            jobject obj;
+            if(isStatic>=0){
+                obj = curEnv->NewGlobalRef(curEnv->CallStaticObjectMethodA(cls, method, argValues));
+            }
+            else{
+                obj = curEnv->NewGlobalRef(curEnv->CallObjectMethodA(object, method, argValues));
+            }
             //store class value
             char* clsName= new char[strlen(returnType)];
             strlcpy(clsName, returnType + 1, strlen(returnType) - 1);
@@ -215,41 +250,94 @@ void *invokeNativeMethodNeo(void *classPtr, char *methodName, void **args, char 
         }
     }
     else if (strcmp(returnType, "C") == 0) {
-        auto nativeChar = curEnv->CallCharMethodA(object, method, argValues);
+        jchar nativeChar;
+        if(isStatic >=0){
+            nativeChar = curEnv->CallStaticCharMethodA(cls, method, argValues);
+        }
+        else{
+            nativeChar = curEnv->CallCharMethodA(object, method, argValues);
+        }
         nativeInvokeResult = (void *) nativeChar;
     }
     else if(strcmp(returnType, "I") == 0) {
-        auto nativeInt = curEnv->CallIntMethodA(object, method, argValues);
+        jint nativeInt;
+        if(isStatic >=0){
+            nativeInt = curEnv->CallStaticIntMethodA(cls, method, argValues);
+        }
+        else{
+            nativeInt = curEnv->CallIntMethodA(object, method, argValues);
+        }
         nativeInvokeResult = (void *) nativeInt;
     }
     else if(strcmp(returnType, "D") == 0) {
-        auto nativeDouble = curEnv->CallDoubleMethodA(object, method, argValues);
+        jdouble nativeDouble;
+        if(isStatic >=0){
+            nativeDouble = curEnv->CallStaticDoubleMethodA(cls, method, argValues);
+        }
+        else{
+            nativeDouble = curEnv->CallDoubleMethodA(object, method, argValues);
+        }
         double cDouble = (double) nativeDouble;
         memcpy(&nativeInvokeResult, &cDouble, sizeof(double));
     }
     else if(strcmp(returnType, "F") == 0) {
-        auto nativeDouble = curEnv->CallFloatMethodA(object, method, argValues);
+        jdouble nativeDouble;
+        if(isStatic >=0){
+            nativeDouble = curEnv->CallStaticDoubleMethodA(cls, method, argValues);
+        }
+        else{
+            nativeDouble = curEnv->CallDoubleMethodA(object, method, argValues);
+        }
         float cDouble = (float) nativeDouble;
         memcpy(&nativeInvokeResult, &cDouble, sizeof(float));
     }
     else if(strcmp(returnType, "B") == 0) {
-        auto nativeByte = curEnv->CallByteMethodA(object, method, argValues);
+        jbyte nativeByte;
+        if(isStatic >=0){
+            nativeByte = curEnv->CallStaticByteMethodA(cls, method, argValues);
+        }
+        else{
+            nativeByte = curEnv->CallByteMethodA(object, method, argValues);
+        }
         nativeInvokeResult = (void *) nativeByte;
     }
     else if(strcmp(returnType, "S") == 0) {
-        auto nativeShort = curEnv->CallShortMethodA(object, method, argValues);
+        jshort nativeShort;
+        if(isStatic >=0){
+            nativeShort = curEnv->CallStaticShortMethodA(cls, method, argValues);
+        }
+        else{
+            nativeShort = curEnv->CallShortMethodA(object, method, argValues);
+        }
         nativeInvokeResult = (void *) nativeShort;
     }
     else if(strcmp(returnType, "J") == 0) {
-        auto nativeLong = curEnv->CallLongMethodA(object, method, argValues);
+        jlong nativeLong;
+        if(isStatic >=0){
+            nativeLong = curEnv->CallStaticLongMethodA(cls, method, argValues);
+        }
+        else{
+            nativeLong = curEnv->CallLongMethodA(object, method, argValues);
+        }
         nativeInvokeResult = (void *) nativeLong;
     }
     else if(strcmp(returnType, "Z") == 0) {
-        auto nativeBool = curEnv->CallBooleanMethodA(object, method, argValues);
+        jboolean nativeBool;
+        if(isStatic >=0){
+            nativeBool = curEnv->CallStaticBooleanMethodA(cls, method, argValues);
+        }
+        else{
+            nativeBool = curEnv->CallBooleanMethodA(object, method, argValues);
+        }
         nativeInvokeResult = (void *) nativeBool;
     }
     else if(strcmp(returnType, "V") == 0) {
-        curEnv->CallVoidMethodA(object, method, argValues);
+        if(isStatic >=0){
+            curEnv->CallStaticVoidMethodA(cls, method, argValues);
+        }
+        else{
+            curEnv->CallVoidMethodA(object, method, argValues);
+        }
     }
 
     free(argValues);

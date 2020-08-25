@@ -122,13 +122,24 @@ class _AndroidAppState extends State<AndroidApp> {
             width: 800, // specific value
             child: new FlatButton(
                 onPressed: () {
-                  testConstructor();
+                  testStatic();
                 },
-                child: Text('testConstructor : $_str\n')),
+                child: Text('testConstructor : $_ffiInt\n')),
           ),
         ),
       ]),
     ));
+  }
+
+  void testStatic() async {
+    print("testStatic");
+    constructorTest("changeName!").getString();
+    constructorTest("changeName!").testStatic();
+  }
+
+  void testEntity() async {
+    print("testEntity");
+    constructorTest("changeName!").createEntity();
   }
 
   void testConstructor() async {

@@ -138,6 +138,13 @@ dynamic loadValueFromPointer(Pointer<Void> ptr, String returnType) {
     case "Ljava/lang/String;":
       result = Utf8.fromUtf8(ptr.cast());
       break;
+    case "[I":
+      final res = data.getInt32(0, Endian.host);
+      print('pointer: $res');
+//      final intArray = ptr.cast<Int16>().asTypedList(2);
+//      print('array.array: $intArray');
+//      return intArray;
+      break;
     default:
       result = ptr;
       break;

@@ -7,9 +7,11 @@ import io.flutter.Log;
  */
 public class constructorTest {
 
-    private final String TAG = "dart_java";
+    private static final String TAG = "dart_java";
 
     private String name = "none";
+
+    int[] intArray = new int[]{5,2,3,4};
 
     constructorTest(String str){
         Log.d(TAG, this.name);
@@ -19,6 +21,14 @@ public class constructorTest {
 
     public String getString(){
         return name;
+    }
+
+    public static void testStatic(){
+        Log.d(TAG, "testStatic");
+    }
+
+    public Entity createEntity(){
+        return new Entity();
     }
 
 }
