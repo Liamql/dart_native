@@ -31,4 +31,11 @@ public class constructorTest {
         return new Entity();
     }
 
+    public static class InnerC{
+        public static void testInnerC(){
+            Log.d(TAG, "static inner class");
+        }
+    }
+
+
 }

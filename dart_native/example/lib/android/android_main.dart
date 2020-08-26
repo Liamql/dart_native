@@ -122,13 +122,18 @@ class _AndroidAppState extends State<AndroidApp> {
             width: 800, // specific value
             child: new FlatButton(
                 onPressed: () {
-                  testStatic();
+                  testStaticInnerC();
                 },
                 child: Text('testConstructor : $_ffiInt\n')),
           ),
         ),
       ]),
     ));
+  }
+
+  void testStaticInnerC() async {
+    print("testStaticInnerC");
+    InnerC().testInnerC();
   }
 
   void testStatic() async {

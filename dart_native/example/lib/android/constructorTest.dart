@@ -20,3 +20,11 @@ class constructorTest extends JObject {
   }
 
 }
+
+class InnerC extends JObject {
+  InnerC([Pointer ptr]) : super("com/dartnative/dart_native_example/constructorTest\$InnerC", ptr, []);
+
+  void testInnerC() {
+    return invoke('testInnerC', [], 'V', "static");
+  }
+}
